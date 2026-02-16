@@ -104,7 +104,7 @@ To build, test, and deploy the smart contracts, ensure the following tools are i
 Clone the project and navigate into the root directory:
 
 ```bash
-git clone https://github.com/StabilityNexus/identitytokens-evm-contracts.git
+git clone https://github.com/StabilityNexus/IdentityTokens-EVM-Contracts.git
 cd identitytokens-evm-contracts
 ```
 
