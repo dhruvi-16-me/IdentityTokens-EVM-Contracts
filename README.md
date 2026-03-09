@@ -12,7 +12,7 @@
 <!-- Organization Name -->
 <div align="center">
 
-[![Static Badge](https://img.shields.io/badge/Stability_Nexus-/TODO-228B22?style=for-the-badge&labelColor=FFC517)](https://TODO.stability.nexus/)
+[![Static Badge](https://img.shields.io/badge/IdentityTokens_EVM-Contracts-228B22?style=for-the-badge&label=Stability%20Nexus&labelColor=FFC517)](https://identitytokens.stability.nexus/)
 
 <!-- Correct deployed url to be added -->
 
@@ -48,141 +48,130 @@
 ---
 
 <div align="center">
-<h1>TODO: Project Name</h1>
+  <h1> IdentityTokens-EVM-Contracts</h1>
+  <p>
+    IdentityTokens-EVM-Contracts is a decentralized identity protocol built on EVM-compatible blockchains that enables individuals to self-issue ERC-721 NFT-based identity tokens with optional metadata such as name, social links, age, nationality, and residence. Users maintain full control over their digital identities and can endorse other identity tokens on-chain, creating a transparent and verifiable web of trust. The system ensures efficient on-chain mappings between tokens, metadata, and endorsement relationships, supporting multiple identity tokens per user while enabling scalable and reliable identity verification.
+  </p>
 </div>
 
-[TODO](https://TODO.stability.nexus/) is a ... TODO: Project Description.
+---
+
+## 🛠️ Tech Stack
+
+### ⛓️ Blockchain (Smart Contracts)
+
+-   **Language:** Solidity ^0.8.24
+-   **Smart Contracts:** Custom EVM-based contracts implementing protocol logic, token standards, and access control
+-   **Development Framework:** Foundry
+    -   **Testing:** Forge Standard Library (`forge-std`)
+    -   **Deployment:** Forge Scripts (Anvil, Sepolia)
+-   **Libraries:**
+    -   OpenZeppelin Contracts v5.5.0
+-   **Static Analysis & Linting:**
+    -   Slither (security analysis)
+    -   Solhint (linting & style enforcement)
+    -   Prettier Plugin Solidity (code formatting)
+
+### 🌐 Frontend & Web3 Integration
+
+-   **Wagmi:** React hooks for Ethereum interactions (wallet connection, contract reads/writes, event tracking)
+-   **Ethers.js:** Ethereum library for interacting with providers and smart contracts
+-   **Wallet Integration:** MetaMask, WalletConnect (via Wagmi connectors)
+
+### 🚀 CI/CD & DevOps
+
+-   **GitHub Actions:** Automated lint, build (Forge), and test workflows
+-   **Pre-commit Hooks:** Code quality enforcement before commits
+-   **Package Manager:** npm
 
 ---
 
-## Project Maturity
-
-TODO: In the checklist below, mark the items that have been completed and delete items that are not applicable to the current project:
-
--   [ ] The project has a logo.
--   [ ] The project has a favicon.
--   [ ] The protocol:
-    -   [ ] has been described and formally specified in a paper.
-    -   [ ] has had its main properties mathematically proven.
-    -   [ ] has been formally verified.
--   [ ] The smart contracts:
-    -   [ ] were thoroughly reviewed by at least two knights of The Stable Order.
-    -   [ ] were deployed to:
-        -   [ ] Ergo
-        -   [ ] Cardano
-        -   [ ] EVM Chains:
-            -   [ ] Ethereum Classic
-            -   [ ] Ethereum
-            -   [ ] Polygon
-            -   [ ] BSC
-            -   [ ] Base
--   [ ] The mobile app:
-    -   [ ] has an _About_ page containing the Stability Nexus's logo and pointing to the social media accounts of the Stability Nexus.
-    -   [ ] is available for download as a release in this repo.
-    -   [ ] is available in the relevant app stores.
--   [ ] The web frontend:
-    -   [ ] has proper title and metadata.
-    -   [ ] has proper open graph metadata, to ensure that it is shown well when shared in social media (Discord, Telegram, Twitter, LinkedIn).
-    -   [ ] has a footer, containing the Stability Nexus's logo and pointing to the social media accounts of the Stability Nexus.
-    -   [ ] is fully static and client-side.
-    -   [ ] is deployed to Github Pages via a Github Workflow.
-    -   [ ] is accessible through the https://TODO:PROJECT-NAME.stability.nexus domain.
--   [ ] the project is listed in [https://stability.nexus/protocols](https://stability.nexus/protocols).
-
----
-
-## Tech Stack
-
-TODO:
-
-### Frontend
-
-TODO:
-
--   Next.js 14+ (React)
--   TypeScript
--   TailwindCSS
--   shadcn/ui
-
-### Blockchain
-
-TODO:
-
--   Wagmi
--   Solidity Smart Contracts
--   Ethers.js
-
----
-
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-TODO
+To build, test, and deploy the smart contracts, ensure the following tools are installed:
 
--   Node.js 18+
--   npm/yarn/pnpm
--   MetaMask or any other web3 wallet browser extension
+-   **Node.js (v18 or higher)** – Required for managing dependencies and running formatting/linting tools.
+-   **Foundry** – Primary development framework for compiling, testing, and deploying smart contracts.
+-   **Git** – Required for cloning the repository and managing submodules.
+-   **Web3 Wallet (e.g., MetaMask)** – For interacting with deployed contracts on local or live networks.
 
-### Installation
+## Installation
 
-TODO
+### 1. Clone the Repository
 
-#### 1. Clone the Repository
+Clone the project and navigate into the root directory:
 
 ```bash
-git clone https://github.com/StabilityNexus/TODO.git
-cd TODO
+git clone https://github.com/StabilityNexus/IdentityTokens-EVM-Contracts.git
+cd IdentityTokens-EVM-Contracts
 ```
 
-#### 2. Install Dependencies
+### 2. Install Dependencies
 
-Using your preferred package manager:
+The project requires both Node.js packages for styling/linting and Foundry for smart contract logic:
 
-```bash
+Install Node.js Tools (Prettier, Solhint):
+
+```Bash
 npm install
-# or
-yarn install
-# or
-pnpm install
 ```
-
-#### 3. Run the Development Server
-
-Start the app locally:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
+#### Install Foundry (if not installed)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
 ```
 
-#### 4. Open your Browser
+```bash
+# Install OpenZeppelin for Foundry
+forge install OpenZeppelin/openzeppelin-contracts
+forge install foundry-rs/forge-std
+```
 
-Navigate to [http://localhost:3000](http://localhost:3000) to see the application.
+### 3. Build and Test
+
+Ensure everything is configured correctly by compiling the contracts and running the automated test suite:
+
+#### Compile Contracts
+
+```bash
+forge build
+```
+
+#### Run Tests
+
+```bash
+forge test
+```
+
+#### Run Tests with Gas Report
+
+```bash
+forge test --gas-report
+```
+
+#### Run Tests with Verbose Output
+
+```bash
+forge test -vvvv
+```
+
+#### Check Contract Sizes
+
+```bash
+forge build --sizes
+```
+
+#### Clean Build Artifacts
+
+```bash
+forge clean
+```
 
 ---
 
-## Contributing
-
-We welcome contributions of all kinds! To contribute:
-
-1. Fork the repository and create your feature branch (`git checkout -b feature/AmazingFeature`).
-2. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-3. Run the development workflow commands to ensure code quality:
-    - `npm run format:write`
-    - `npm run lint:fix`
-    - `npm run typecheck`
-4. Push your branch (`git push origin feature/AmazingFeature`).
-5. Open a Pull Request for review.
-
-If you encounter bugs, need help, or have feature requests:
-
--   Please open an issue in this repository providing detailed information.
--   Describe the problem clearly and include any relevant logs or screenshots.
-
-We appreciate your feedback and contributions!
-
-© 2025 The Stable Order.
+<p align="center">
+  © 2026 The Stable Order.
+</p>
