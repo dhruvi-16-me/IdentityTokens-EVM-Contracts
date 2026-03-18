@@ -91,6 +91,17 @@ contract IdentityToken is ERC721, IIdentityToken {
         emit Events.AttributeSet(tokenId, keyHash, value);
     }
 
+    function deleteAttribute(
+        uint256 tokenId,
+        string calldata key
+    ) external onlyTokenOwner(tokenId) notCompromised(tokenId) {
+        bytes32 keyHash = keccak256(abi.encodePacked(key));
+
+        delete attributes[tokenId][keyHash];
+
+        emit Events.AttributeDeleted(tokenId, keyHash);
+    }
+
     /**
      * @dev Allows an identity to endorse another identity.
      */

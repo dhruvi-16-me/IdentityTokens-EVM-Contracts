@@ -6,6 +6,7 @@ import { IERC721Metadata } from "@openzeppelin/contracts/token/ERC721/extensions
 
 interface IIdentityToken is IERC721, IERC721Metadata {
     function setAttribute(uint256 tokenId, string calldata key, bytes calldata value) external;
+    function deleteAttribute(uint256 tokenId, string calldata key) external;
 
     function endorse(uint256 fromTokenId, uint256 toTokenId, bytes32 connectionType, uint256 validUntil) external;
 
