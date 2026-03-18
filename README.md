@@ -60,29 +60,37 @@
 
 ### ⛓️ Blockchain (Smart Contracts)
 
--   **Language:** Solidity ^0.8.24
--   **Smart Contracts:** Custom EVM-based contracts implementing protocol logic, token standards, and access control
--   **Development Framework:** Foundry
-    -   **Testing:** Forge Standard Library (`forge-std`)
-    -   **Deployment:** Forge Scripts (Anvil, Sepolia)
--   **Libraries:**
-    -   OpenZeppelin Contracts v5.5.0
--   **Static Analysis & Linting:**
-    -   Slither (security analysis)
-    -   Solhint (linting & style enforcement)
-    -   Prettier Plugin Solidity (code formatting)
+- **Language:** Solidity ^0.8.24
+- **Smart Contracts:** Custom EVM-based contracts implementing protocol logic, token standards, and access control
+- **Development Framework:** Foundry
+    - **Testing:** Forge Standard Library (`forge-std`)
+    - **Deployment:** Forge Scripts (Anvil, Sepolia)
+- **Libraries:**
+    - OpenZeppelin Contracts v5.5.0
+- **Static Analysis & Linting:**
+    - Slither (security analysis)
+    - Solhint (linting & style enforcement)
+    - Prettier Plugin Solidity (code formatting)
 
 ### 🌐 Frontend & Web3 Integration
 
--   **Wagmi:** React hooks for Ethereum interactions (wallet connection, contract reads/writes, event tracking)
--   **Ethers.js:** Ethereum library for interacting with providers and smart contracts
--   **Wallet Integration:** MetaMask, WalletConnect (via Wagmi connectors)
+- **Wagmi:** React hooks for Ethereum interactions (wallet connection, contract reads/writes, event tracking)
+- **Ethers.js:** Ethereum library for interacting with providers and smart contracts
+- **Wallet Integration:** MetaMask, WalletConnect (via Wagmi connectors)
 
 ### 🚀 CI/CD & DevOps
 
--   **GitHub Actions:** Automated lint, build (Forge), and test workflows
--   **Pre-commit Hooks:** Code quality enforcement before commits
--   **Package Manager:** npm
+- **GitHub Actions:** Automated lint, build (Forge), and test workflows
+- **Pre-commit Hooks:** Code quality enforcement before commits
+- **Package Manager:** npm
+
+---
+
+## 🔄 Workflow
+
+To understand the development process, contribution flow, and project structure, please refer to the detailed workflow guide:
+
+👉 [View Workflow](docs/WORKFLOWS.md)
 
 ---
 
@@ -92,10 +100,10 @@
 
 To build, test, and deploy the smart contracts, ensure the following tools are installed:
 
--   **Node.js (v18 or higher)** – Required for managing dependencies and running formatting/linting tools.
--   **Foundry** – Primary development framework for compiling, testing, and deploying smart contracts.
--   **Git** – Required for cloning the repository and managing submodules.
--   **Web3 Wallet (e.g., MetaMask)** – For interacting with deployed contracts on local or live networks.
+- **Node.js (v18 or higher)** – Required for managing dependencies and running formatting/linting tools.
+- **Foundry** – Primary development framework for compiling, testing, and deploying smart contracts.
+- **Git** – Required for cloning the repository and managing submodules.
+- **Web3 Wallet (e.g., MetaMask)** – For interacting with deployed contracts on local or live networks.
 
 ## Installation
 
