@@ -174,10 +174,12 @@ contract IdentityTokenTest is Test {
         vm.prank(alice);
         uint256 tokenId = identityToken.mint();
 
-        // identityStates[tokenId].isCompromised = true
-        // slot index for identityStates mapping is 2 in current storage layout
-        bytes32 slot = keccak256(abi.encode(tokenId, uint256(2)));
-        vm.store(address(identityToken), slot, bytes32(uint256(1)));
+        // identityStates is at slot 2 in IdentityToken's storage layout:
+        // slot 0: _nextTokenId
+        // slot 1: ownerToTokenId
+        // slot 2: identityStates
+        bytes32 slot = keccak256(abi.encode(uint256(tokenId), uint256(2)));
+        vm.store(address(identityToken), slot, bytes32(uint256(1))); // isCompromised = true
 
         vm.prank(alice);
         vm.expectRevert(Errors.IdentityCompromised.selector);
