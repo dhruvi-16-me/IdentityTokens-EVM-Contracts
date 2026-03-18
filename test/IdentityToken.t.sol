@@ -6,8 +6,10 @@ import { IdentityToken } from "../src/IdentityToken.sol";
 import { DataTypes } from "../src/libraries/DataTypes.sol";
 import { Errors } from "../src/libraries/Errors.sol";
 import { Events } from "../src/libraries/Events.sol";
+import { StdStorage, stdStorage } from "forge-std/Test.sol";
 
 contract IdentityTokenTest is Test {
+    using stdStorage for StdStorage;
     IdentityToken public identityToken;
     address public alice = address(0x1);
     address public bob = address(0x2);
@@ -174,12 +176,12 @@ contract IdentityTokenTest is Test {
         vm.prank(alice);
         uint256 tokenId = identityToken.mint();
 
-        // identityStates is at slot 2 in IdentityToken's storage layout:
-        // slot 0: _nextTokenId
-        // slot 1: ownerToTokenId
-        // slot 2: identityStates
-        bytes32 slot = keccak256(abi.encode(uint256(tokenId), uint256(2)));
-        vm.store(address(identityToken), slot, bytes32(uint256(1))); // isCompromised = true
+        // Use stdStorage to set isCompromised without hardcoding a slot
+        stdstore
+        .target(address(identityToken))
+        .sig("identityStates(uint256)")
+        .with_key(tokenId)
+        .depth(0).checked_write(true); // isCompromised is the first field in IdentityState
 
         vm.prank(alice);
         vm.expectRevert(Errors.IdentityCompromised.selector);
