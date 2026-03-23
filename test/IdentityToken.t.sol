@@ -250,6 +250,8 @@ contract IdentityTokenTest is Test {
         assertEq(Schema.GITHUB, keccak256(abi.encodePacked("github")));
         assertEq(Schema.LINKEDIN, keccak256(abi.encodePacked("linkedin")));
         assertEq(Schema.TWITTER, keccak256(abi.encodePacked("twitter")));
+        assertEq(Schema.PHONE, keccak256(abi.encodePacked("phone")));
+        assertEq(Schema.EMAIL, keccak256(abi.encodePacked("email")));
     }
 
     // -------------------------------------------------------------------------
