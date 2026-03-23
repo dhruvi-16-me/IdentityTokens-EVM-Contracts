@@ -18,4 +18,6 @@ library Schema {
     bytes32 internal constant GITHUB = keccak256(abi.encodePacked("github"));
     bytes32 internal constant LINKEDIN = keccak256(abi.encodePacked("linkedin"));
     bytes32 internal constant TWITTER = keccak256(abi.encodePacked("twitter"));
+    bytes32 internal constant PHONE = keccak256(abi.encodePacked("phone"));
+    bytes32 internal constant EMAIL = keccak256(abi.encodePacked("email"));
 }
