@@ -11,7 +11,11 @@ import { IIdentityToken } from "./interfaces/IIdentityToken.sol";
 contract IdentityToken is ERC721, IIdentityToken {
     error NonTransferable();
 
+    uint256 private constant BACKUP_TIMELOCK = 7 days;
+
     uint256 private _nextTokenId = 1;
+
+    bool private _recovering;
 
     // wallet => tokenId (enforce one identity per wallet)
     mapping(address => uint256) public ownerToTokenId;
@@ -35,6 +39,11 @@ contract IdentityToken is ERC721, IIdentityToken {
         _;
     }
 
+    modifier onlyBackupWallet(uint256 tokenId) {
+        if (identityStates[tokenId].backupWallet != msg.sender) revert Errors.NotBackupWallet();
+        _;
+    }
+
     constructor() ERC721("IdentityToken", "IDT") {}
 
     function supportsInterface(bytes4 interfaceId) public view override(ERC721, IERC165) returns (bool) {
@@ -44,8 +53,8 @@ contract IdentityToken is ERC721, IIdentityToken {
     function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
         address from = _ownerOf(tokenId);
 
-        // prevent transfers (only mint or burn allowed)
-        if (from != address(0) && to != address(0)) revert NonTransferable();
+        // prevent transfers (only mint, burn, or explicit recovery allowed)
+        if (!_recovering && from != address(0) && to != address(0)) revert NonTransferable();
 
         address prevOwner = super._update(to, tokenId, auth);
 
@@ -183,6 +192,103 @@ contract IdentityToken is ERC721, IIdentityToken {
         endorsements[toTokenId].push(newEndorsement);
 
         emit Events.EndorsementGiven(fromTokenId, toTokenId, connectionType, validUntil);
+    }
+
+    // -------------------------------------------------------------------------
+    // Backup Wallet Management
+    // -------------------------------------------------------------------------
+
+    /**
+     * @dev Initiates a timelocked backup wallet change. The pending address is
+     *      stored; the caller must call finalizeBackupUpdate after BACKUP_TIMELOCK
+     *      has elapsed to commit the change.
+     */
+    function initiateBackupUpdate(
+        uint256 tokenId,
+        address newBackup
+    ) external onlyTokenOwner(tokenId) notCompromised(tokenId) {
+        DataTypes.IdentityState storage state = identityStates[tokenId];
+        state.pendingBackupWallet = newBackup;
+        state.backupUnlockTime = block.timestamp + BACKUP_TIMELOCK;
+        emit Events.BackupUpdateInitiated(tokenId, newBackup, state.backupUnlockTime);
+    }
+
+    /**
+     * @dev Finalizes a pending backup wallet change after the timelock has passed.
+     */
+    function finalizeBackupUpdate(uint256 tokenId) external onlyTokenOwner(tokenId) notCompromised(tokenId) {
+        DataTypes.IdentityState storage state = identityStates[tokenId];
+        if (state.pendingBackupWallet == address(0)) revert Errors.NoPendingUpdate();
+        if (block.timestamp < state.backupUnlockTime) revert Errors.TimelockActive();
+
+        address newBackup = state.pendingBackupWallet;
+        state.backupWallet = newBackup;
+        state.pendingBackupWallet = address(0);
+        state.backupUnlockTime = 0;
+
+        emit Events.BackupUpdated(tokenId, newBackup);
+    }
+
+    // -------------------------------------------------------------------------
+    // Compromise & Recovery
+    // -------------------------------------------------------------------------
+
+    /**
+     * @dev Marks a token as compromised, freezing all attribute and endorsement
+     *      operations. Callable by the token owner or its registered backup wallet.
+     */
+    function flagCompromised(uint256 tokenId) external {
+        DataTypes.IdentityState storage state = identityStates[tokenId];
+        if (ownerOf(tokenId) != msg.sender && state.backupWallet != msg.sender) {
+            revert Errors.NotTokenOwner();
+        }
+        state.isCompromised = true;
+        emit Events.IdentityCompromised(tokenId);
+    }
+
+    /**
+     * @dev Recovers a compromised (or otherwise inaccessible) identity by
+     *      transferring it to a new owner. Only the registered backup wallet
+     *      may call this. Clears the isCompromised flag post-transfer.
+     */
+    function recoverIdentity(uint256 tokenId, address newOwner) external onlyBackupWallet(tokenId) {
+        if (balanceOf(newOwner) != 0) revert Errors.AlreadyHasIdentity();
+
+        address currentOwner = ownerOf(tokenId);
+
+        _recovering = true;
+        _transfer(currentOwner, newOwner, tokenId);
+        _recovering = false;
+
+        identityStates[tokenId].isCompromised = false;
+
+        emit Events.IdentityRecovered(tokenId, newOwner);
+    }
+
+    // -------------------------------------------------------------------------
+    // Endorsement Revocation
+    // -------------------------------------------------------------------------
+
+    /**
+     * @dev Allows the original endorser to revoke a previously given endorsement.
+     * @param targetTokenId The token that received the endorsement.
+     * @param index         The position of the endorsement in endorsements[targetTokenId].
+     */
+    function revokeEndorsement(uint256 targetTokenId, uint256 index) external {
+        DataTypes.Endorsement[] storage list = endorsements[targetTokenId];
+
+        if (index >= list.length) revert Errors.IndexOutOfBounds();
+
+        DataTypes.Endorsement storage e = list[index];
+
+        uint256 callerTokenId = ownerToTokenId[msg.sender];
+        if (callerTokenId == 0 || e.endorserTokenId != callerTokenId) revert Errors.NotEndorser();
+
+        if (e.revokedAt != 0) revert Errors.AlreadyRevoked();
+
+        e.revokedAt = block.timestamp;
+
+        emit Events.EndorsementRevoked(e.endorserTokenId, targetTokenId, index);
     }
 
     // -------------------------------------------------------------------------

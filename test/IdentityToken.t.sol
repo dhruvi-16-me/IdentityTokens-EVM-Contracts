@@ -14,6 +14,7 @@ contract IdentityTokenTest is Test {
     IdentityToken public identityToken;
     address public alice = address(0x1);
     address public bob = address(0x2);
+    address public carol = address(0x3);
 
     function setUp() public {
         identityToken = new IdentityToken();
@@ -528,5 +529,300 @@ contract IdentityTokenTest is Test {
         vm.warp(expiry + 1);
 
         assertTrue(identityToken.isExpired(tokenId));
+    }
+
+    // -------------------------------------------------------------------------
+    // Backup Wallet Management
+    // -------------------------------------------------------------------------
+
+    /// Helper: initiate + warp past timelock + finalize as `owner`.
+    function _setupBackupWallet(address owner, uint256 tokenId, address backup) internal {
+        vm.prank(owner);
+        identityToken.initiateBackupUpdate(tokenId, backup);
+        vm.warp(block.timestamp + 7 days + 1);
+        vm.prank(owner);
+        identityToken.finalizeBackupUpdate(tokenId);
+    }
+
+    function test_InitiateBackupUpdate_SetsPendingFields() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        vm.prank(alice);
+        identityToken.initiateBackupUpdate(tokenId, carol);
+
+        DataTypes.Identity memory id = identityToken.getIdentity(tokenId);
+        assertEq(id.pendingBackupWallet, carol);
+        assertGt(id.backupUnlockTime, 0);
+    }
+
+    function test_InitiateBackupUpdate_EmitsEvent() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        uint256 expectedUnlock = block.timestamp + 7 days;
+
+        vm.prank(alice);
+        vm.expectEmit(true, false, false, true);
+        emit Events.BackupUpdateInitiated(tokenId, carol, expectedUnlock);
+        identityToken.initiateBackupUpdate(tokenId, carol);
+    }
+
+    function test_FinalizeBackupUpdate_CommitsBackupWallet() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        _setupBackupWallet(alice, tokenId, carol);
+
+        DataTypes.Identity memory id = identityToken.getIdentity(tokenId);
+        assertEq(id.backupWallet, carol);
+        assertEq(id.pendingBackupWallet, address(0));
+        assertEq(id.backupUnlockTime, 0);
+    }
+
+    function test_FinalizeBackupUpdate_EmitsEvent() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        vm.prank(alice);
+        identityToken.initiateBackupUpdate(tokenId, carol);
+        vm.warp(block.timestamp + 7 days + 1);
+
+        vm.prank(alice);
+        vm.expectEmit(true, false, false, true);
+        emit Events.BackupUpdated(tokenId, carol);
+        identityToken.finalizeBackupUpdate(tokenId);
+    }
+
+    function test_RevertIf_InitiateBackupUpdate_NotOwner() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        vm.prank(bob);
+        vm.expectRevert(Errors.NotTokenOwner.selector);
+        identityToken.initiateBackupUpdate(tokenId, carol);
+    }
+
+    function test_RevertIf_FinalizeBackupUpdate_TimelockActive() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        vm.prank(alice);
+        identityToken.initiateBackupUpdate(tokenId, carol);
+
+        vm.prank(alice);
+        vm.expectRevert(Errors.TimelockActive.selector);
+        identityToken.finalizeBackupUpdate(tokenId);
+    }
+
+    function test_RevertIf_FinalizeBackupUpdate_NoPendingUpdate() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        vm.prank(alice);
+        vm.expectRevert(Errors.NoPendingUpdate.selector);
+        identityToken.finalizeBackupUpdate(tokenId);
+    }
+
+    function test_RevertIf_FinalizeBackupUpdate_NotOwner() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        vm.prank(alice);
+        identityToken.initiateBackupUpdate(tokenId, carol);
+        vm.warp(block.timestamp + 7 days + 1);
+
+        vm.prank(bob);
+        vm.expectRevert(Errors.NotTokenOwner.selector);
+        identityToken.finalizeBackupUpdate(tokenId);
+    }
+
+    function test_InitiateBackupUpdate_RevertIf_Compromised() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        stdstore.target(address(identityToken)).sig("identityStates(uint256)").with_key(tokenId).depth(0).checked_write(
+            true
+        );
+
+        vm.prank(alice);
+        vm.expectRevert(Errors.IdentityCompromised.selector);
+        identityToken.initiateBackupUpdate(tokenId, carol);
+    }
+
+    // -------------------------------------------------------------------------
+    // Flag Compromised
+    // -------------------------------------------------------------------------
+
+    function test_FlagCompromised_ByOwner_SetsFlag() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        vm.prank(alice);
+        identityToken.flagCompromised(tokenId);
+
+        DataTypes.Identity memory id = identityToken.getIdentity(tokenId);
+        assertTrue(id.isCompromised);
+    }
+
+    function test_FlagCompromised_ByOwner_EmitsEvent() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        vm.prank(alice);
+        vm.expectEmit(true, false, false, false);
+        emit Events.IdentityCompromised(tokenId);
+        identityToken.flagCompromised(tokenId);
+    }
+
+    function test_FlagCompromised_ByBackupWallet() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        _setupBackupWallet(alice, tokenId, carol);
+
+        vm.prank(carol);
+        identityToken.flagCompromised(tokenId);
+
+        DataTypes.Identity memory id = identityToken.getIdentity(tokenId);
+        assertTrue(id.isCompromised);
+    }
+
+    function test_RevertIf_FlagCompromised_Unauthorized() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        vm.prank(bob);
+        vm.expectRevert(Errors.NotTokenOwner.selector);
+        identityToken.flagCompromised(tokenId);
+    }
+
+    function test_FlagCompromised_FreezesAttributes() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        vm.prank(alice);
+        identityToken.flagCompromised(tokenId);
+
+        vm.prank(alice);
+        vm.expectRevert(Errors.IdentityCompromised.selector);
+        identityToken.setAttribute(tokenId, "name", bytes("Hacker"));
+    }
+
+    // -------------------------------------------------------------------------
+    // Identity Recovery
+    // -------------------------------------------------------------------------
+
+    function test_RecoverIdentity_TransfersOwnership() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        _setupBackupWallet(alice, tokenId, carol);
+
+        vm.prank(alice);
+        identityToken.flagCompromised(tokenId);
+
+        address newOwner = address(0x4);
+
+        vm.prank(carol);
+        identityToken.recoverIdentity(tokenId, newOwner);
+
+        assertEq(identityToken.ownerOf(tokenId), newOwner);
+        assertEq(identityToken.ownerToTokenId(newOwner), tokenId);
+        assertEq(identityToken.ownerToTokenId(alice), 0);
+    }
+
+    function test_RecoverIdentity_ResetsIsCompromised() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        _setupBackupWallet(alice, tokenId, carol);
+
+        vm.prank(alice);
+        identityToken.flagCompromised(tokenId);
+
+        vm.prank(carol);
+        identityToken.recoverIdentity(tokenId, address(0x4));
+
+        DataTypes.Identity memory id = identityToken.getIdentity(tokenId);
+        assertFalse(id.isCompromised);
+    }
+
+    function test_RecoverIdentity_EmitsEvent() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        _setupBackupWallet(alice, tokenId, carol);
+
+        address newOwner = address(0x4);
+
+        vm.prank(carol);
+        vm.expectEmit(true, false, false, true);
+        emit Events.IdentityRecovered(tokenId, newOwner);
+        identityToken.recoverIdentity(tokenId, newOwner);
+    }
+
+    function test_RecoverIdentity_WorksWithoutFlaggingCompromised() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        _setupBackupWallet(alice, tokenId, carol);
+
+        address newOwner = address(0x4);
+
+        vm.prank(carol);
+        identityToken.recoverIdentity(tokenId, newOwner);
+
+        assertEq(identityToken.ownerOf(tokenId), newOwner);
+    }
+
+    function test_RecoverIdentity_NewOwnerCanUseToken() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        _setupBackupWallet(alice, tokenId, carol);
+
+        address newOwner = address(0x4);
+
+        vm.prank(carol);
+        identityToken.recoverIdentity(tokenId, newOwner);
+
+        vm.prank(newOwner);
+        identityToken.setAttribute(tokenId, "name", bytes("Recovered Alice"));
+
+        assertEq(string(identityToken.getAttribute(tokenId, "name")), "Recovered Alice");
+    }
+
+    function test_RevertIf_RecoverIdentity_NotBackupWallet() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        vm.prank(bob);
+        vm.expectRevert(Errors.NotBackupWallet.selector);
+        identityToken.recoverIdentity(tokenId, address(0x4));
+    }
+
+    function test_RevertIf_RecoverIdentity_NewOwnerAlreadyHasIdentity() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        _setupBackupWallet(alice, tokenId, carol);
+
+        vm.prank(bob);
+        identityToken.mint();
+
+        vm.prank(carol);
+        vm.expectRevert(Errors.AlreadyHasIdentity.selector);
+        identityToken.recoverIdentity(tokenId, bob);
+    }
+
+    function test_RevertIf_RecoverIdentity_NoBackupWalletSet() public {
+        vm.prank(alice);
+        uint256 tokenId = identityToken.mint();
+
+        // carol was never registered as backup
+        vm.prank(carol);
+        vm.expectRevert(Errors.NotBackupWallet.selector);
+        identityToken.recoverIdentity(tokenId, address(0x4));
     }
 }
